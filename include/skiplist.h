@@ -8,3 +8,11 @@
  * @copyright Copyright (c) 2023
  * 
  */
+#pragma once 
+
+#include "Node.h"
+
+template <typename K, typename V>
+class SkipList{
+
+};
