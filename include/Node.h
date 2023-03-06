@@ -15,7 +15,7 @@ class SkipList;
 
 template <typename K, typename V>
 class Node {
-  friend class SkipList;
+  friend class SkipList<K, V>;
 
  public:
   Node() {}
@@ -26,6 +26,7 @@ class Node {
   V getValue() const;
   void setValue(V value);
 
+  // 不同层数的下一节点
   Node<K, V> **forward_;
   int node_level_;
 
