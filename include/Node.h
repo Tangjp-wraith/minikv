@@ -36,27 +36,26 @@ class Node {
 };
 
 template <typename K, typename V>
-inline Node<K, V>::Node(K k, V v, int level)
-    : key_(k), value_(v), node_level_(level) {
+Node<K, V>::Node(K k, V v, int level) : key_(k), value_(v), node_level_(level) {
   forward_ = new Node<K, V> *[node_level_ + 1]();
 }
 
 template <typename K, typename V>
-inline Node<K, V>::~Node() {
+Node<K, V>::~Node() {
   delete[] forward_;
 }
 
 template <typename K, typename V>
-inline K Node<K, V>::getKey() const {
+K Node<K, V>::getKey() const {
   return key_;
 }
 
 template <typename K, typename V>
-inline V Node<K, V>::getValue() const {
+V Node<K, V>::getValue() const {
   return value_;
 }
 
 template <typename K, typename V>
-inline void Node<K, V>::setValue(V value) {
+void Node<K, V>::setValue(V value) {
   value_ = value;
 }

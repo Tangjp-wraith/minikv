@@ -68,8 +68,8 @@ class SkipList {
 };
 
 template <typename K, typename V>
-inline SkipList<K, V>::SkipList()
-    : max_level_(32), cur_level_(0), element_count_(0) ,rnd_(1) {
+SkipList<K, V>::SkipList()
+    : max_level_(32), cur_level_(0), element_count_(0), rnd_(1) {
   K k;
   V v;
   // 创建头节点 并将K,V初始化为NULL
@@ -79,15 +79,15 @@ inline SkipList<K, V>::SkipList()
 
 // 建造跳表
 template <typename K, typename V>
-inline SkipList<K, V>::SkipList(int max_level)
-    : max_level_(max_level), cur_level_(0), element_count_(0),rnd_(1) {
+SkipList<K, V>::SkipList(int max_level)
+    : max_level_(max_level), cur_level_(0), element_count_(0), rnd_(1) {
   K k;
   V v;
   header_ = new Node<K, V>(k, v, max_level_);
 }
 
 template <typename K, typename V>
-inline SkipList<K, V>::~SkipList() {
+SkipList<K, V>::~SkipList() {
   if (file_writer_.is_open()) {
     file_writer_.close();
   }
@@ -105,7 +105,7 @@ inline Node<K, V> *SkipList<K, V>::createNode(const K k, const V v, int level) {
 
 // 打印整个跳表
 template <typename K, typename V>
-inline void SkipList<K, V>::displayList() {
+void SkipList<K, V>::displayList() {
 #ifdef DEBUG
   std::cout << "display SkipList : " << std::endl;
 #endif
@@ -131,7 +131,7 @@ inline void SkipList<K, V>::displayList() {
 
 // 向跳表中插入节点
 template <typename K, typename V>
-inline bool SkipList<K, V>::insertElement(const K key, const V value) {
+bool SkipList<K, V>::insertElement(const K key, const V value) {
   mtx.lock();
   Node<K, V> *cur = header_;
   // 创建数组update并初始化
@@ -185,7 +185,7 @@ inline bool SkipList<K, V>::insertElement(const K key, const V value) {
 
 // 从条表中查询元素
 template <typename K, typename V>
-inline bool SkipList<K, V>::searchElement(K key, V &value) {
+bool SkipList<K, V>::searchElement(K key, V &value) {
 #ifdef DEBUG
   std::cout << "-----------search element----------" << std::endl;
 #endif
@@ -209,7 +209,7 @@ inline bool SkipList<K, V>::searchElement(K key, V &value) {
 
 // 从跳表中删除元素
 template <typename K, typename V>
-inline bool SkipList<K, V>::deleteElement(K key) {
+bool SkipList<K, V>::deleteElement(K key) {
   mtx.lock();
   Node<K, V> **update = new Node<K, V> *[max_level_ + 1]();
   Node<K, V> *cur = header_;
@@ -243,13 +243,13 @@ inline bool SkipList<K, V>::deleteElement(K key) {
 }
 
 template <typename K, typename V>
-inline int SkipList<K, V>::size() {
+int SkipList<K, V>::size() {
   return element_count_;
 }
 
 // 将数据导出到文件
 template <typename K, typename V>
-inline void SkipList<K, V>::dumpFile() {
+void SkipList<K, V>::dumpFile() {
 #ifdef DEBUG
   std::cout << "-----------dumpfile----------" << std::endl;
 #endif
@@ -271,7 +271,7 @@ inline void SkipList<K, V>::dumpFile() {
 
 // 从磁盘读取数据
 template <typename K, typename V>
-inline void SkipList<K, V>::loadFile() {
+void SkipList<K, V>::loadFile() {
 #ifdef DEBUG
   std::cout << "-----------loadfile----------" << std::endl;
 #endif
@@ -293,9 +293,9 @@ inline void SkipList<K, V>::loadFile() {
 }
 
 template <typename K, typename V>
-inline void SkipList<K, V>::getKeyValueFromString(const std::string &str,
-                                                  std::string *key,
-                                                  std::string *value) {
+void SkipList<K, V>::getKeyValueFromString(const std::string &str,
+                                           std::string *key,
+                                           std::string *value) {
   if (!isValidString(str)) {
     return;
   }
@@ -305,7 +305,7 @@ inline void SkipList<K, V>::getKeyValueFromString(const std::string &str,
 }
 
 template <typename K, typename V>
-inline bool SkipList<K, V>::isValidString(const std::string &str) {
+bool SkipList<K, V>::isValidString(const std::string &str) {
   if (str.empty() || str.find(DELIMITER) == std::string::npos) {
     return false;
   }
@@ -313,7 +313,7 @@ inline bool SkipList<K, V>::isValidString(const std::string &str) {
 }
 
 template <typename K, typename V>
-inline int SkipList<K, V>::getRandomLevel() {
+int SkipList<K, V>::getRandomLevel() {
   int level = static_cast<int>(rnd_.Uniform(max_level_));
   if (level == 0) {
     level = 1;

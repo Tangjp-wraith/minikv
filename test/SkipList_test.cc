@@ -9,10 +9,12 @@
  *
  */
 
+#define  DEBUG
 #include "../include/SkipList.h"
 
 #include <iostream>
 #include <ostream>
+
 
 int main() {
   SkipList<int, std::string> mySkipList(6);
