@@ -98,7 +98,7 @@ SkipList<K, V>::~SkipList() {
 }
 
 template <typename K, typename V>
-inline Node<K, V> *SkipList<K, V>::createNode(const K k, const V v, int level) {
+Node<K, V> *SkipList<K, V>::createNode(const K k, const V v, int level) {
   Node<K, V> *node = new Node<K, V>(k, v, level);
   return node;
 }
