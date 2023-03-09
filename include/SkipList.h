@@ -35,7 +35,7 @@ class SkipList {
 
   Node<K, V> *createNode(const K k, const V v, int level);
   void displayList();
-  bool insertElement(const K key, const V value);
+  int insertElement(const K key, const V value);
   bool searchElement(K key, V &value);
   bool deleteElement(K key);
 
@@ -131,7 +131,7 @@ void SkipList<K, V>::displayList() {
 
 // 向跳表中插入节点
 template <typename K, typename V>
-bool SkipList<K, V>::insertElement(const K key, const V value) {
+int SkipList<K, V>::insertElement(const K key, const V value) {
   mtx.lock();
   Node<K, V> *cur = header_;
   // 创建数组update并初始化
@@ -153,7 +153,7 @@ bool SkipList<K, V>::insertElement(const K key, const V value) {
 #endif
     cur->setValue(value);
     mtx.unlock();
-    return false;
+    return 1;
   }
   // 如果current节点为null 这就说明要将该元素插入到最后一个节点
   // 如果current节点的key值和待插入的key不等
@@ -180,7 +180,7 @@ bool SkipList<K, V>::insertElement(const K key, const V value) {
     ++element_count_;
   }
   mtx.unlock();
-  return true;
+  return 0;
 }
 
 // 从条表中查询元素

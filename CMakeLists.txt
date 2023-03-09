@@ -25,3 +25,31 @@ target_link_libraries(test_SkipList
   GTest::GTest
   GTest::Main
 )
+
+# ########### threadpool_test ############
+add_executable(test_ThreadPool
+  test/ThreadPool_test.cc
+)
+
+target_link_libraries(test_ThreadPool
+  GTest::GTest
+  GTest::Main
+)
+
+############ server #####################
+add_executable(server
+  src/Server.cc
+  src/main.cc
+)
+
+target_link_libraries(server
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+############ client #####################
+add_executable(client
+  src/Client.cc
+)
+
+target_link_libraries(client
+  ${CMAKE_THREAD_LIBS_INIT}
+)
