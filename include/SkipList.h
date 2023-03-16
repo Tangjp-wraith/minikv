@@ -19,9 +19,9 @@
 #include <vector>
 
 #include "LRU.h"
-#include "node.h"
+#include "Node.h"
 
-#define STORE_FILE "./store/dumpFile"
+#define STORE_FILE "../store/dumpFile.txt"
 #define LRU_DEFAULT_SIZE 8
 #define CYCLE_DEL_NUM 20
 
@@ -71,7 +71,7 @@ class SkipList {
   std::ifstream _fileReader;
 
   // the store timestamp and time of alive
-  unordered_map<K, pair<int, time_t>> expire_key_mp;
+  std::unordered_map<K, std::pair<int, time_t>> expire_key_mp;
   // LRU cache
   LRU<K, V>* _lrulist;
 };
@@ -338,8 +338,8 @@ void SkipList<K, V>::element_expire_time(K k, int seconds) {
 
   time_t tm;
   time(&tm);
-  expire_key_mp[k] = make_pair(seconds, tm);
-  cout << "successfully set the expire time of key: " << k << " seconds "
+  expire_key_mp[k] = std::make_pair(seconds, tm);
+  std::cout << "successfully set the expire time of key: " << k << " seconds "
        << seconds << std::endl;
 }
 
@@ -383,9 +383,9 @@ void SkipList<K, V>::cycle_del() {
   int cnt, num;
   do {
     cnt = 0;
-    num = min(int(expire_key_mp.size()), CYCLE_DEL_NUM);
+    num = std::min(int(expire_key_mp.size()), CYCLE_DEL_NUM);
     int i = 0;
-    vector<K> del_vec;
+    std::vector<K> del_vec;
     for (auto& ele : expire_key_mp) {
       K key = ele.first;
       if (is_expire(key)) {

@@ -14,18 +14,16 @@
 #include <list>
 #include <unordered_map>
 
-using namespace std;
-
 template <typename K, typename V>
 class LRU {
  private:
   int _capacity;
   // the list of LRU item, the front is the item most recently used
-  list<pair<K, V>> _lst;
-  unordered_map<K, typename list<pair<K, V>>::iterator> _mp;
+  std::list<std::pair<K, V>> _lst;
+  std::unordered_map<K, typename std::list<std::pair<K, V>>::iterator> _mp;
 
  public:
-  LRU(int c) : _capacity(c) { cout << "LRU build" << endl; };
+  LRU(int c) : _capacity(c) { std::cout << "LRU build" << std::endl; };
   ~LRU() = default;
   bool get(K, V&);
   void put(K, V);
@@ -38,7 +36,7 @@ class LRU {
 template <typename K, typename V>
 bool LRU<K, V>::get(K k, V& v) {
   if (_mp.find(k) != _mp.end()) {
-    pair<K, V> p = *(_mp[k]);
+    std::pair<K, V> p = *(_mp[k]);
     v = p.second;
     _lst.erase(_mp[k]);
     _lst.push_front(p);
@@ -85,10 +83,11 @@ bool LRU<K, V>::is_find(K k) {
 
 template <typename K, typename V>
 void LRU<K, V>::printLRUCache() {
-  cout << "-------------LRUCache Begin--------------------" << endl;
+  std::cout << "-------------LRUCache Begin--------------------" << std::endl;
   for (const auto& p : _lst) {
-    cout << "key: " << p.first << ", value : " << p.second << endl;
+    std::cout << "key: " << p.first << ", value : " << p.second << std::endl;
   }
-  cout << "--------------LRUCache End---------------------" << endl;
+  std::cout << "--------------LRUCache End---------------------" << std::endl;
 }
+
 #endif
