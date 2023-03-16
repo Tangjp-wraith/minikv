@@ -1,322 +1,404 @@
 /**
- * @file skiplist.h
+ * @file SkipList.h
  * @author Tang Jiapeng (tangjiapeng0215@gmail.com)
  * @brief
  * @version 0.1
- * @date 2023-03-04
+ * @date 2023-03-16
  *
  * @copyright Copyright (c) 2023
  *
  */
-#pragma once
+#ifndef SKIPLIST_H
+#define SKIPLIST_H
+#include <time.h>
 
-#include <cstdio>
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <locale>
 #include <mutex>
 #include <string>
+#include <vector>
 
-#include "Node.h"
-#include "Random.h"
+#include "LRU.h"
+#include "node.h"
 
-const std::string STORE_FILE = "../store/dumpFile";
-const std::string DELIMITER = ":";
+#define STORE_FILE "./store/dumpFile"
+#define LRU_DEFAULT_SIZE 8
+#define CYCLE_DEL_NUM 20
 
 static std::mutex mtx;
 
 template <typename K, typename V>
 class SkipList {
  public:
-  SkipList();
-  SkipList(int max_level);
+  SkipList() = default;
+  SkipList(int level, int lrusize = LRU_DEFAULT_SIZE);
   ~SkipList();
 
-  Node<K, V> *createNode(const K k, const V v, int level);
+  int getRandomLevel();
+  Node<K, V>* createNode(K, V, int);
   void displayList();
-  int insertElement(const K key, const V value);
-  bool searchElement(K key, V &value);
-  bool deleteElement(K key);
-
-  int size();
+  int insertElement(K, V);
+  bool searchElement(K, V&);
+  bool deleteElement(K);
+  int size() { return _elementCount; };
 
   void dumpFile();
   void loadFile();
 
- private:
-  void getKeyValueFromString(const std::string &str, std::string *key,
-                             std::string *value);
-  bool isValidString(const std::string &str);
-  int getRandomLevel();
+  void element_expire_time(K, int);
+  int element_ttl(const K);
+  void cycle_del();
+
+  void printLRU() { _lrulist->printLRUCache(); };
 
  private:
-  /// @brief 跳表的最大层数
-  int max_level_;
-  /// @brief 当前所在层数
-  int cur_level_;
-  /// @brief 跳表头节点指针
-  Node<K, V> *header_;
-  /// @brief 当前元素个数
-  int element_count_;
-  /// @brief 文件操作 写
-  std::ofstream file_writer_;
-  /// @brief 文件操作 读
-  std::ifstream file_reader_;
+  void get_key_value_from_string(const std::string& str, std::string* key,
+                                 std::string* value);
+  bool is_valid_string(const std::string& str);
+  int is_expire(K k);
 
-  Random rnd_;
+ private:
+  // max level of the skip list
+  int _maxLevel;
+  // curlevel of the skip list
+  int _curLevel;
+  // head ptr
+  Node<K, V>* _header;
+  // cur element num
+  int _elementCount;
+  // file operator
+  std::ofstream _fileWriter;
+  std::ifstream _fileReader;
+
+  // the store timestamp and time of alive
+  unordered_map<K, pair<int, time_t>> expire_key_mp;
+  // LRU cache
+  LRU<K, V>* _lrulist;
 };
 
+// init of SkipList
 template <typename K, typename V>
-SkipList<K, V>::SkipList()
-    : max_level_(32), cur_level_(0), element_count_(0), rnd_(1) {
+SkipList<K, V>::SkipList(int level, int lrusize) {
+  _maxLevel = level;
+  _curLevel = 0;
+  _elementCount = 0;
   K k;
   V v;
-  // 创建头节点 并将K,V初始化为NULL
-  header_ = new Node<K, V>(k, v, max_level_);
-  loadFile();
+  _header = new Node<K, V>(k, v, _maxLevel);
+  _lrulist = new LRU<K, V>(lrusize);
 }
 
-// 建造跳表
-template <typename K, typename V>
-SkipList<K, V>::SkipList(int max_level)
-    : max_level_(max_level), cur_level_(0), element_count_(0), rnd_(1) {
-  K k;
-  V v;
-  header_ = new Node<K, V>(k, v, max_level_);
-}
-
+// destroy of SkipList
 template <typename K, typename V>
 SkipList<K, V>::~SkipList() {
-  if (file_writer_.is_open()) {
-    file_writer_.close();
-  }
-  if (file_reader_.is_open()) {
-    file_reader_.close();
-  }
-  delete header_;
+  if (_fileWriter.is_open()) _fileWriter.close();
+  if (_fileReader.is_open()) _fileReader.close();
+  delete _header;
+  delete _lrulist;
 }
 
+// random level of the node
 template <typename K, typename V>
-Node<K, V> *SkipList<K, V>::createNode(const K k, const V v, int level) {
-  Node<K, V> *node = new Node<K, V>(k, v, level);
+int SkipList<K, V>::getRandomLevel() {
+  int k = 0;
+  while (rand() % 2) k++;
+  k = (k < _maxLevel) ? k : _maxLevel;
+  return k;
+}
+
+// create Node<K,V>
+template <typename K, typename V>
+Node<K, V>* SkipList<K, V>::createNode(K k, V v, int level) {
+  Node<K, V>* node = new Node<K, V>(k, v, level);
   return node;
 }
 
-// 打印整个跳表
+// insert element
 template <typename K, typename V>
-void SkipList<K, V>::displayList() {
-#ifdef DEBUG
-  std::cout << "display SkipList : " << std::endl;
-#endif
-
-  Node<K, V> *cur;
-  for (int i = cur_level_; i >= 0; --i) {
-    cur = header_->forward_[i];
-#ifdef DEBUG
-    std::cout << "Level : " << i << ":";
-#endif
-    while (cur != nullptr) {
-#ifdef DEBUG
-      std::cout << cur->getKey() << ":" << cur->getValue() << " ";
-#endif
-      cur = cur->forward_[i];
-    }
-#ifdef DEBUG
-    std::cout << std::endl;
-#endif
-  }
-  return;
-}
-
-// 向跳表中插入节点
-template <typename K, typename V>
-int SkipList<K, V>::insertElement(const K key, const V value) {
+int SkipList<K, V>::insertElement(K k, V v) {
+  // lock
   mtx.lock();
-  Node<K, V> *cur = header_;
-  // 创建数组update并初始化
-  Node<K, V> **update = new Node<K, V> *[max_level_ + 1]();
-  // 从跳表的左上角节点开始查找
-  for (int i = cur_level_; i >= 0; --i) {
-    // cur在该层的下一个节点的key_小于要找的key
-    while (cur->forward_[i] != nullptr && cur->forward_[i]->getKey() < key) {
-      cur = cur->forward_[i];
-    }
+
+  std::cout << "begin insert key: " << k << std::endl;
+  // if the item is expired, else put the item in LRU
+  if (is_expire(k) == 1) {
+    std::cout << "expired, lazy delete the key: " << k << std::endl;
+    deleteElement(k);
+  } else {
+    std::cout << "put the key: " << k << std::endl;
+    _lrulist->put(k, v);
+  }
+
+  Node<K, V>* cur = _header;
+
+  // track the parent of the inserted-Node
+  Node<K, V>** update = new Node<K, V>*[_maxLevel + 1];
+  for (int i = _curLevel; i >= 0; i--) {
+    while (cur->_forward[i] && cur->_forward[i]->getKey() < k)
+      cur = cur->_forward[i];
     update[i] = cur;
   }
-  //到达最底层，并且当前forward指针指向第一个大于待插入节点的节点
-  cur = cur->forward_[0];
-  // 如果当前节点的key与待插入节点的key相等，直接修改节点值即可
-  if (cur != nullptr && cur->getKey() == key) {
-#ifdef DEBUG
-    std::cout << "key: " << key << ", exists. Change it's value" << std::endl;
-#endif
-    cur->setValue(value);
+
+  // the position of key
+  cur = cur->_forward[0];
+
+  // the key is already in the skiplist, modify its value
+  if (cur && cur->getKey() == k) {
+    // std::cout<<"modify the Node key: "<<k<<", value: "<<v<<std::endl;
+    _lrulist->printLRUCache();
+    cur->setValue(v);
     mtx.unlock();
     return 1;
   }
-  // 如果current节点为null 这就说明要将该元素插入到最后一个节点
-  // 如果current节点的key值和待插入的key不等
-  // 需要在update[0]和current之间插入该节点
-  if (cur == nullptr || cur->getKey() != key) {
+
+  // insert the new Node
+  if (cur == nullptr || cur->getKey() != k) {
     int randomLevel = getRandomLevel();
-    if (randomLevel > cur_level_) {
-      for (int i = cur_level_ + 1; i <= randomLevel; ++i) {
-        update[i] = header_;
+    // the new Node's level is higher than _curLevel
+    if (randomLevel > _curLevel) {
+      for (int i = _curLevel + 1; i <= randomLevel; i++) {
+        update[i] = _header;
       }
-      cur_level_ = randomLevel;
+      _curLevel = randomLevel;
     }
-    // 使用生成的random level 创建新节点
-    Node<K, V> *insertNode = createNode(key, value, randomLevel);
-    // 插入节点
-    for (int i = 0; i <= randomLevel; ++i) {
-      insertNode->forward_[i] = update[i]->forward_[i];
-      update[i]->forward_[i] = insertNode;
+    // insert
+    Node<K, V>* insertNode = createNode(k, v, randomLevel);
+    for (int i = 0; i <= randomLevel; i++) {
+      insertNode->_forward[i] = update[i]->_forward[i];
+      update[i]->_forward[i] = insertNode;
     }
-#ifdef DEBUG
-    std::cout << "Successfully inserted key: " << key << ", value:" << value
+    std::cout << "Successfully inserted key: " << k << ", value: " << v
               << std::endl;
-#endif
-    ++element_count_;
+    _elementCount++;
   }
+
+  // unlock the mutex
   mtx.unlock();
   return 0;
 }
 
-// 从条表中查询元素
+// search the given key, and return its value
 template <typename K, typename V>
-bool SkipList<K, V>::searchElement(K key, V &value) {
-#ifdef DEBUG
-  std::cout << "-----------search element----------" << std::endl;
-#endif
-  Node<K, V> *cur = header_;
-  for (int i = cur_level_; i >= 0; --i) {
-    while (cur->forward_[i] && cur->forward_[i]->getKey() < key) {
-      cur = cur->forward_[i];
+bool SkipList<K, V>::searchElement(K k, V& v) {
+  // firstly search from LRU
+  if (_lrulist->get(k, v)) {
+    // lazy delete
+    if (is_expire(k) == 1) {
+      std::cout << "The key: " << k << " has expired, lazy delete it"
+                << std::endl;
+      deleteElement(k);
+      return false;
     }
-  }
-  cur = cur->forward_[0];
-  if (cur != nullptr && cur->getKey() == key) {
-    value = cur->getValue();
-#ifdef DEBUG
-    std::cout << "Found key:" << key << ", value" << cur->getValue()
-              << std::endl;
-#endif
+    _lrulist->put(k, v);
+    // std::cout << "Found key: " << k << ", value: " << v << " and move to the
+    // head of LRU"<<std::endl;
     return true;
   }
+  Node<K, V>* cur = _header;
+  for (int i = _curLevel; i >= 0; i--) {
+    while (cur->_forward[i] && cur->_forward[i]->getKey() < k)
+      cur = cur->_forward[i];
+  }
+  cur = cur->_forward[0];
+  // lazy delete
+  if (cur && is_expire(cur->getKey()) == 1) {
+    deleteElement(cur->getKey());
+    return false;
+  }
+  // find the key-value
+  if (cur && cur->getKey() == k) {
+    v = cur->getValue();
+    _lrulist->put(k, v);
+    // std::cout << "Found key: " << k << ", value: " << cur->getValue() <<" and
+    // put into the LRU"<< std::endl;
+    return true;
+  }
+  // std::cout << "Not Found Key:" << k << std::endl;
   return false;
 }
 
-// 从跳表中删除元素
+// delete the given key element
 template <typename K, typename V>
-bool SkipList<K, V>::deleteElement(K key) {
+bool SkipList<K, V>::deleteElement(K k) {
+  // lock the mutex
   mtx.lock();
-  Node<K, V> **update = new Node<K, V> *[max_level_ + 1]();
-  Node<K, V> *cur = header_;
-  for (int i = cur_level_; i >= 0; --i) {
-    while (cur->forward_[i] && cur->forward_[i]->getKey() < key) {
-      cur = cur->forward_[i];
-    }
+
+  // whether the key in the LRU cache
+  if (_lrulist->is_find(k)) {
+    _lrulist->del(k);
+    expire_key_mp.erase(k);
+  }
+
+  Node<K, V>* cur = _header;
+  // track the parent
+  Node<K, V>** update = new Node<K, V>*[_maxLevel + 1];
+  for (int i = _curLevel; i >= 0; i--) {
+    while (cur->_forward[i] && cur->_forward[i]->getKey() < k)
+      cur = cur->_forward[i];
     update[i] = cur;
   }
-  cur = cur->forward_[0];
-  if (cur != nullptr && cur->getKey() == key) {
-    // 从最底层开始 删除每一层的current节点
-    for (int i = 0; i <= cur_level_; ++i) {
-      if (update[i]->forward_[i] != cur) {
-        break;
-      }
-      update[i]->forward_[i] = cur->forward_[i];
+  cur = cur->_forward[0];
+
+  // if find the key-element, delete
+  if (cur && cur->getKey() == k) {
+    for (int i = 0; i <= _curLevel; i++) {
+      if (update[i]->_forward[i] != cur) break;
+      update[i]->_forward[i] = cur->_forward[i];
     }
+    std::cout << "Delete key: " << k << " value: " << cur->getValue()
+              << std::endl;
     delete cur;
-    // 当前层为空 则删除层
-    while (cur_level_ > 0 && header_->forward_[cur_level_] == nullptr) {
-      --cur_level_;
-    }
-    --element_count_;
+    while (_curLevel > 0 && _header->_forward[_curLevel] == nullptr)
+      _curLevel--;
+    _elementCount--;
     mtx.unlock();
     return true;
-  } else {
-    mtx.unlock();
-    return false;
   }
+  std::cout << "Delete key: " << k << " failed, not exist" << std::endl;
+  mtx.unlock();
+  return false;
 }
 
+// display the skip list
+// in level mode
 template <typename K, typename V>
-int SkipList<K, V>::size() {
-  return element_count_;
+void SkipList<K, V>::displayList() {
+  std::cout << "\n**********Display SkipList**********\n";
+  Node<K, V>* cur;
+  for (int i = _curLevel; i >= 0; i--) {
+    cur = _header->_forward[i];
+    std::cout << "Level " << i << std::endl;
+    while (cur != nullptr) {
+      std::cout << cur->getKey() << ":" << cur->getValue() << "; ";
+      cur = cur->_forward[i];
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "\n************Display  End************\n";
 }
 
-// 将数据导出到文件
+// write return disk
 template <typename K, typename V>
 void SkipList<K, V>::dumpFile() {
-#ifdef DEBUG
-  std::cout << "-----------dumpfile----------" << std::endl;
-#endif
-  if (!file_writer_.is_open()) {
-    file_writer_.open(STORE_FILE, std::ios::out | std::ios::trunc);
-  }
-  Node<K, V> *cur = header_->forward_[0];
-  while (cur != nullptr) {
-    file_writer_ << cur->getKey() << ":" << cur->getValue() << "\n";
-#ifdef DEBUG
-    std::cout << cur->getKey() << ":" << cur->getValue() << std::endl;
-#endif
-    cur = cur->forward_[0];
-  }
-  file_writer_.flush();
-  file_writer_.close();
-  return;
-}
-
-// 从磁盘读取数据
-template <typename K, typename V>
-void SkipList<K, V>::loadFile() {
-#ifdef DEBUG
-  std::cout << "-----------loadfile----------" << std::endl;
-#endif
-  file_reader_.open(STORE_FILE);
-  std::string line;
-  std::string *key = new std::string();
-  std::string *value = new std::string();
-  while (getline(file_reader_, line)) {
-    getKeyValueFromString(line, key, value);
-    if (key->empty() || value->empty()) {
-      continue;
-    }
-    insertElement(*key, *value);
-#ifdef DEBUG
-    std::cout << "key: " << *key << " value: " << value << std::endl;
-#endif
-  }
-  file_reader_.close();
-}
-
-template <typename K, typename V>
-void SkipList<K, V>::getKeyValueFromString(const std::string &str,
-                                           std::string *key,
-                                           std::string *value) {
-  if (!isValidString(str)) {
+  std::cout << "\ndump file\n";
+  _fileWriter.open(STORE_FILE);
+  if (!_fileWriter.is_open()) {
+    std::cout << "file not open" << std::endl;
     return;
   }
-  int pos = str.find(DELIMITER);
-  *key = str.substr(0, pos);
-  *value = str.substr(pos + 1, str.size());
+  Node<K, V>* cur = _header->_forward[0];
+  while (cur != nullptr) {
+    _fileWriter << cur->getKey() << ":" << cur->getValue() << std::endl;
+    cur = cur->_forward[0];
+  }
+  _fileWriter.flush();
+  _fileWriter.close();
+}
+
+// load the data from disk
+template <typename K, typename V>
+void SkipList<K, V>::loadFile() {
+  std::cout << "\nload file\n";
+  _fileReader.open(STORE_FILE);
+  if (!_fileReader.is_open()) {
+    std::cout << "file not open" << std::endl;
+    return;
+  }
+  std::string line;
+  std::string* key = new std::string();
+  std::string* value = new std::string();
+  while (getline(_fileReader, line)) {
+    get_key_value_from_string(line, key, value);
+    if (key->empty() || value->empty()) continue;
+    insertElement(stoi(*key), *value);
+    std::cout << "load item key: " << *key << " value: " << *value << std::endl;
+  }
+  _fileReader.close();
+}
+
+// recover the KV-item from string
+template <typename K, typename V>
+void SkipList<K, V>::get_key_value_from_string(const std::string& str,
+                                               std::string* key,
+                                               std::string* value) {
+  if (str.empty() || str.find(':') == std::string::npos) return;
+  *key = str.substr(0, str.find(':'));
+  *value = str.substr(str.find(':') + 1);
+}
+
+// set the expire time of the key
+template <typename K, typename V>
+void SkipList<K, V>::element_expire_time(K k, int seconds) {
+  V v;
+  if (searchElement(k, v) == false) {
+    std::cout << "expire time set failed, "
+              << "key: " << k << " not found" << std::endl;
+    return;
+  }
+
+  time_t tm;
+  time(&tm);
+  expire_key_mp[k] = make_pair(seconds, tm);
+  cout << "successfully set the expire time of key: " << k << " seconds "
+       << seconds << std::endl;
 }
 
 template <typename K, typename V>
-bool SkipList<K, V>::isValidString(const std::string &str) {
-  if (str.empty() || str.find(DELIMITER) == std::string::npos) {
-    return false;
-  }
-  return true;
+int SkipList<K, V>::is_expire(K k) {
+  // not found
+  // std::cout<<"try to find key: "<<k<<" in LRU"<<std::endl;
+  if (expire_key_mp.find(k) == expire_key_mp.end()) return -1;
+  time_t tm;
+  time(&tm);
+  // is expire or not
+  if (tm - expire_key_mp[k].second >= expire_key_mp[k].first)
+    return 1;
+  else
+    return 0;
 }
 
+// return the ttl of the given key
 template <typename K, typename V>
-int SkipList<K, V>::getRandomLevel() {
-  int level = static_cast<int>(rnd_.Uniform(max_level_));
-  if (level == 0) {
-    level = 1;
+int SkipList<K, V>::element_ttl(const K k) {
+  if (expire_key_mp.find(k) == expire_key_mp.end()) {
+    std::cout << "ask for the ttl for a permanent key: " << k << std::endl;
+    return -1;
   }
-  return level;
+
+  if (is_expire(k)) {
+    deleteElement(k);
+    std::cout << "key: " << k << " is expired, delete it" << std::endl;
+  }
+
+  time_t tm;
+  time(&tm);
+  int sec = expire_key_mp[k].first - (tm - expire_key_mp[k].second);
+  std::cout << "key: " << k << " has " << sec << " seconds left" << std::endl;
+  return sec;
 }
+
+// cycle delete
+template <typename K, typename V>
+void SkipList<K, V>::cycle_del() {
+  int cnt, num;
+  do {
+    cnt = 0;
+    num = min(int(expire_key_mp.size()), CYCLE_DEL_NUM);
+    int i = 0;
+    vector<K> del_vec;
+    for (auto& ele : expire_key_mp) {
+      K key = ele.first;
+      if (is_expire(key)) {
+        del_vec.emplace_back(key);
+        cnt++;
+      }
+      if (++i >= num) break;
+    }
+    for (auto k : del_vec) {
+      std::cout << "Cycle delete, "
+                << "key: " << k << std::endl;
+      deleteElement(k);
+    }
+  } while (num * 0.5 < cnt);
+}
+#endif

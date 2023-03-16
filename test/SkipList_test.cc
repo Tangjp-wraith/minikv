@@ -9,7 +9,6 @@
  *
  */
 
-#define  DEBUG
 #include "../include/SkipList.h"
 
 #include <iostream>
