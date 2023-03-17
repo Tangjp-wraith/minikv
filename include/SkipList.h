@@ -128,6 +128,7 @@ SkipList<K, V, Comp>::SkipList(int level, int lrusize) {
   V v;
   _header = new Node<K, V>(k, v, _maxLevel);
   _lrulist = new LRU<K, V>(lrusize);
+  // _less(Comp());
 }
 
 // destroy of SkipList
@@ -156,8 +157,8 @@ Node<K, V>* SkipList<K, V, Comp>::createNode(K k, V v, int level) {
 }
 
 // insert element
-template <typename K, typename V,typename Comp>
-int SkipList<K, V,Comp>::insertElement(K k, V v) {
+template <typename K, typename V, typename Comp>
+int SkipList<K, V, Comp>::insertElement(K k, V v) {
   // lock
   mtx.lock();
 
@@ -178,7 +179,7 @@ int SkipList<K, V,Comp>::insertElement(K k, V v) {
   // track the parent of the inserted-Node
   Node<K, V>** update = new Node<K, V>*[_maxLevel + 1];
   for (int i = _curLevel; i >= 0; i--) {
-    while (cur->_forward[i] && cur->_forward[i]->getKey() < k)
+    while (cur->_forward[i] && _less(cur->_forward[i]->getKey(), k))
       cur = cur->_forward[i];
     update[i] = cur;
   }
@@ -187,7 +188,8 @@ int SkipList<K, V,Comp>::insertElement(K k, V v) {
   cur = cur->_forward[0];
 
   // the key is already in the skiplist, modify its value
-  if (cur && cur->getKey() == k) {
+  if (cur != nullptr &&
+      (!_less(cur->getKey(), k) && !_less(k, cur->getKey()))) {
     // std::cout<<"modify the Node key: "<<k<<", value: "<<v<<std::endl;
     _lrulist->printLRUCache();
     cur->setValue(v);
@@ -196,7 +198,7 @@ int SkipList<K, V,Comp>::insertElement(K k, V v) {
   }
 
   // insert the new Node
-  if (cur == nullptr || cur->getKey() != k) {
+  if (cur == nullptr || _less(k, cur->getKey())) {
     int randomLevel = getRandomLevel();
     // the new Node's level is higher than _curLevel
     if (randomLevel > _curLevel) {
@@ -222,10 +224,10 @@ int SkipList<K, V,Comp>::insertElement(K k, V v) {
 }
 
 // search the given key, and return its value
-template <typename K, typename V,typename Comp>
-bool SkipList<K, V,Comp>::searchElement(K k, V& v) {
+template <typename K, typename V, typename Comp>
+bool SkipList<K, V, Comp>::searchElement(K k, V& v) {
   if (!BF._IsIn(k)) {
-    std::cout << "BloomFilter: key=" << k << "doesn't exist" << std::endl;
+    std::cout << "BloomFilter: key=" << k << " doesn't exist" << std::endl;
     return false;
   }
 
@@ -245,7 +247,7 @@ bool SkipList<K, V,Comp>::searchElement(K k, V& v) {
   }
   Node<K, V>* cur = _header;
   for (int i = _curLevel; i >= 0; i--) {
-    while (cur->_forward[i] && cur->_forward[i]->getKey() < k)
+    while (cur->_forward[i] && _less(cur->_forward[i]->getKey(), k))
       cur = cur->_forward[i];
   }
   cur = cur->_forward[0];
@@ -255,7 +257,8 @@ bool SkipList<K, V,Comp>::searchElement(K k, V& v) {
     return false;
   }
   // find the key-value
-  if (cur && cur->getKey() == k) {
+  if (cur != nullptr &&
+      (!_less(cur->getKey(), k) && !_less(k, cur->getKey()))) {
     v = cur->getValue();
     _lrulist->put(k, v);
     // std::cout << "Found key: " << k << ", value: " << cur->getValue() <<" and
@@ -267,13 +270,14 @@ bool SkipList<K, V,Comp>::searchElement(K k, V& v) {
 }
 
 // delete the given key element
-template <typename K, typename V,typename Comp>
-bool SkipList<K, V,Comp>::deleteElement(K k) {
+template <typename K, typename V, typename Comp>
+bool SkipList<K, V, Comp>::deleteElement(K k) {
   // lock the mutex
   mtx.lock();
 
   if (!BF._IsIn(k)) {
-    std::cout << "BloomFilter: key=" << k << "doesn't exist" << std::endl;
+    std::cout << "BloomFilter: key=" << k << " doesn't exist" << std::endl;
+    mtx.unlock();
     return false;
   }
 
@@ -287,14 +291,15 @@ bool SkipList<K, V,Comp>::deleteElement(K k) {
   // track the parent
   Node<K, V>** update = new Node<K, V>*[_maxLevel + 1];
   for (int i = _curLevel; i >= 0; i--) {
-    while (cur->_forward[i] && cur->_forward[i]->getKey() < k)
+    while (cur->_forward[i] && _less(cur->_forward[i]->getKey(), k))
       cur = cur->_forward[i];
     update[i] = cur;
   }
   cur = cur->_forward[0];
 
   // if find the key-element, delete
-  if (cur && cur->getKey() == k) {
+  if (cur != nullptr &&
+      (!_less(cur->getKey(), k) && !_less(k, cur->getKey()))) {
     for (int i = 0; i <= _curLevel; i++) {
       if (update[i]->_forward[i] != cur) break;
       update[i]->_forward[i] = cur->_forward[i];
@@ -315,8 +320,8 @@ bool SkipList<K, V,Comp>::deleteElement(K k) {
 
 // display the skip list
 // in level mode
-template <typename K, typename V,typename Comp>
-void SkipList<K, V,Comp>::displayList() {
+template <typename K, typename V, typename Comp>
+void SkipList<K, V, Comp>::displayList() {
   std::cout << "\n**********Display SkipList**********\n";
   Node<K, V>* cur;
   for (int i = _curLevel; i >= 0; i--) {
@@ -332,8 +337,8 @@ void SkipList<K, V,Comp>::displayList() {
 }
 
 // write return disk
-template <typename K, typename V,typename Comp>
-void SkipList<K, V,Comp>::dumpFile() {
+template <typename K, typename V, typename Comp>
+void SkipList<K, V, Comp>::dumpFile() {
   std::cout << "\ndump file\n";
   _fileWriter.open(STORE_FILE);
   if (!_fileWriter.is_open()) {
@@ -350,8 +355,8 @@ void SkipList<K, V,Comp>::dumpFile() {
 }
 
 // load the data from disk
-template <typename K, typename V,typename Comp>
-void SkipList<K, V,Comp>::loadFile() {
+template <typename K, typename V, typename Comp>
+void SkipList<K, V, Comp>::loadFile() {
   std::cout << "\nload file\n";
   _fileReader.open(STORE_FILE);
   if (!_fileReader.is_open()) {
@@ -371,18 +376,18 @@ void SkipList<K, V,Comp>::loadFile() {
 }
 
 // recover the KV-item from string
-template <typename K, typename V,typename  Comp>
-void SkipList<K, V,Comp>::get_key_value_from_string(const std::string& str,
-                                               std::string* key,
-                                               std::string* value) {
+template <typename K, typename V, typename Comp>
+void SkipList<K, V, Comp>::get_key_value_from_string(const std::string& str,
+                                                     std::string* key,
+                                                     std::string* value) {
   if (str.empty() || str.find(':') == std::string::npos) return;
   *key = str.substr(0, str.find(':'));
   *value = str.substr(str.find(':') + 1);
 }
 
 // set the expire time of the key
-template <typename K, typename V,typename Comp>
-void SkipList<K, V,Comp>::element_expire_time(K k, int seconds) {
+template <typename K, typename V, typename Comp>
+void SkipList<K, V, Comp>::element_expire_time(K k, int seconds) {
   V v;
   if (searchElement(k, v) == false) {
     std::cout << "expire time set failed, "
@@ -397,8 +402,8 @@ void SkipList<K, V,Comp>::element_expire_time(K k, int seconds) {
             << seconds << std::endl;
 }
 
-template <typename K, typename V,typename Comp>
-int SkipList<K, V,Comp>::is_expire(K k) {
+template <typename K, typename V, typename Comp>
+int SkipList<K, V, Comp>::is_expire(K k) {
   // not found
   // std::cout<<"try to find key: "<<k<<" in LRU"<<std::endl;
   if (expire_key_mp.find(k) == expire_key_mp.end()) return -1;
@@ -412,8 +417,8 @@ int SkipList<K, V,Comp>::is_expire(K k) {
 }
 
 // return the ttl of the given key
-template <typename K, typename V,typename Comp>
-int SkipList<K, V,Comp>::element_ttl(const K k) {
+template <typename K, typename V, typename Comp>
+int SkipList<K, V, Comp>::element_ttl(const K k) {
   if (expire_key_mp.find(k) == expire_key_mp.end()) {
     std::cout << "ask for the ttl for a permanent key: " << k << std::endl;
     return -1;
@@ -432,8 +437,8 @@ int SkipList<K, V,Comp>::element_ttl(const K k) {
 }
 
 // cycle delete
-template <typename K, typename V,typename Comp>
-void SkipList<K, V,Comp>::cycle_del() {
+template <typename K, typename V, typename Comp>
+void SkipList<K, V, Comp>::cycle_del() {
   int cnt, num;
   do {
     cnt = 0;

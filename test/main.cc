@@ -30,22 +30,22 @@ int main() {
   SkipList<std::string, std::string> mykv(12);
   // mykv.loadFile();
   for (int i = 0; i < 100; i++) {
-    mykv.insertElement(randStr(1), randStr(rand() % 10));
+    mykv.insertElement(randStr(2), randStr(rand() % 10));
   }
 
   for (int i = 0; i < 10; i++) {
-    mykv.deleteElement(randStr(1));
+    mykv.deleteElement(randStr(2));
   }
 
   for (int i = 0; i < 100; i++) {
-    mykv.element_expire_time(randStr(1), rand() % 10);
+    mykv.element_expire_time(randStr(2), rand() % 10);
   }
 
   for (int i = 0; i < 100; i++) {
-    mykv.element_ttl(randStr(1));
+    mykv.element_ttl(randStr(2));
   }
   sleep(5);
-  mykv.cycle_del();
+  // mykv.cycle_del();
 
   // for (int i = 0; i < 100; i++) {
   //   mykv.deleteElement(rand()%100);
