@@ -11,8 +11,10 @@
 
 #include <unistd.h>
 
+#include <cstdlib>
 #include <iostream>
 #include <ostream>
+#include <string>
 
 #include "../include/SkipList.h"
 
@@ -25,25 +27,25 @@ std::string randStr(int len) {
 }
 
 int main() {
-  SkipList<int, std::string> mykv(12);
+  SkipList<std::string, std::string> mykv(12);
   // mykv.loadFile();
   for (int i = 0; i < 100; i++) {
-    mykv.insertElement(i, randStr(rand() % 10000));
+    mykv.insertElement(randStr(1), randStr(rand() % 10));
   }
 
-  // for (int i = 0; i < 10; i++) {
-  //   mykv.deleteElement(i);
-  // }
-
-  for (int i = 0; i < 100; i++) {
-    mykv.element_expire_time(i, rand() % 10);
+  for (int i = 0; i < 10; i++) {
+    mykv.deleteElement(randStr(1));
   }
 
   for (int i = 0; i < 100; i++) {
-    mykv.element_ttl(i);
+    mykv.element_expire_time(randStr(1), rand() % 10);
+  }
+
+  for (int i = 0; i < 100; i++) {
+    mykv.element_ttl(randStr(1));
   }
   sleep(5);
-  // mykv.cycle_del();
+  mykv.cycle_del();
 
   // for (int i = 0; i < 100; i++) {
   //   mykv.deleteElement(rand()%100);

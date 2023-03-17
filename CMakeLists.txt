@@ -26,10 +26,10 @@ target_link_libraries(main
 )
 
 # ############ stress_test #############
-add_executable(test_stress
-  test/stress_test.cc
-)
+# add_executable(test_stress
+#   test/stress_test.cc
+# )
 
-target_link_libraries(test_stress
-  ${CMAKE_THREAD_LIBS_INIT}
-)
+# target_link_libraries(test_stress
+#   ${CMAKE_THREAD_LIBS_INIT}
+# )
