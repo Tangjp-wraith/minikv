@@ -1,16 +1,4 @@
-/**
- * @file BloomFliter.h
- * @author Tang Jiapeng (tangjiapeng0215@gmail.com)
- * @brief
- * @version 0.1
- * @date 2023-03-17
- *
- * @copyright Copyright (c) 2023
- *
- */
-#ifndef BLOOM_FILTER_H
-#define BLOOM_FILTER_H
-
+#pragma once
 #include <cstddef>
 #include <iostream>
 #include <vector>
@@ -161,5 +149,3 @@ class BloomFilter {
   BitMap _bitmap;
   size_t _capacity;
 };
-
-#endif

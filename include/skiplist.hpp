@@ -1,15 +1,4 @@
-/**
- * @file SkipList.h
- * @author Tang Jiapeng (tangjiapeng0215@gmail.com)
- * @brief
- * @version 0.1
- * @date 2023-03-16
- *
- * @copyright Copyright (c) 2023
- *
- */
-#ifndef SKIPLIST_H
-#define SKIPLIST_H
+#pragma once
 #include <time.h>
 
 #include <fstream>
@@ -18,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "BloomFilter.h"
-#include "LRU.h"
+#include "bloomfilter.hpp"
+#include "lru.hpp"
 
 #define STORE_FILE "../store/dumpFile.txt"
 #define LRU_DEFAULT_SIZE 8
@@ -460,4 +449,3 @@ void SkipList<K, V, Comp>::cycle_del() {
     }
   } while (num * 0.5 < cnt);
 }
-#endif

@@ -1,15 +1,4 @@
-/**
- * @file LRU.h
- * @author Tang Jiapeng (tangjiapeng0215@gmail.com)
- * @brief
- * @version 0.1
- * @date 2023-03-16
- *
- * @copyright Copyright (c) 2023
- *
- */
-#ifndef LRU_H
-#define LRU_H
+#pragma once
 #include <iostream>
 #include <list>
 #include <unordered_map>
@@ -90,4 +79,3 @@ void LRU<K, V>::printLRUCache() {
   std::cout << "--------------LRUCache End---------------------" << std::endl;
 }
 
-#endif
