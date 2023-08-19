@@ -16,7 +16,7 @@
 #include <ostream>
 #include <string>
 
-#include "../include/skiplist.hpp"
+#include "../base/skiplist.hpp"
 
 std::string randStr(int len) {
   std::string ans = "";

@@ -6,13 +6,13 @@
 template <typename K, typename V>
 class LRU {
  private:
-  int _capacity;
+  int capacity_;
   // the list of LRU item, the front is the item most recently used
-  std::list<std::pair<K, V>> _lst;
-  std::unordered_map<K, typename std::list<std::pair<K, V>>::iterator> _mp;
+  std::list<std::pair<K, V>> lst_;
+  std::unordered_map<K, typename std::list<std::pair<K, V>>::iterator> mp_;
 
  public:
-  LRU(int c) : _capacity(c) { std::cout << "LRU build" << std::endl; };
+  LRU(int c) : capacity_(c) { std::cout << "LRU build" << std::endl; };
   ~LRU() = default;
   bool get(K, V&);
   void put(K, V);
@@ -24,12 +24,12 @@ class LRU {
 // search the key in the LRU block, if found, move to the front
 template <typename K, typename V>
 bool LRU<K, V>::get(K k, V& v) {
-  if (_mp.find(k) != _mp.end()) {
-    std::pair<K, V> p = *(_mp[k]);
+  if (mp_.find(k) != mp_.end()) {
+    std::pair<K, V> p = *(mp_[k]);
     v = p.second;
-    _lst.erase(_mp[k]);
-    _lst.push_front(p);
-    _mp[k] = _lst.begin();
+    lst_.erase(mp_[k]);
+    lst_.push_front(p);
+    mp_[k] = lst_.begin();
     return true;
   }
   return false;
@@ -38,20 +38,20 @@ bool LRU<K, V>::get(K k, V& v) {
 // insert the key item
 template <typename K, typename V>
 void LRU<K, V>::put(K k, V v) {
-  if (_mp.find(k) != _mp.end()) {
-    _lst.erase(_mp[k]);
-    _lst.push_front({k, v});
-    _mp[k] = _lst.begin();
+  if (mp_.find(k) != mp_.end()) {
+    lst_.erase(mp_[k]);
+    lst_.push_front({k, v});
+    mp_[k] = lst_.begin();
   } else {
-    if (_lst.size() == _capacity) {
-      auto tail = _lst.back();
-      _lst.pop_back();
-      _mp.erase(tail.first);
-      _lst.push_front({k, v});
-      _mp[k] = _lst.begin();
+    if (lst_.size() == capacity_) {
+      auto tail = lst_.back();
+      lst_.pop_back();
+      mp_.erase(tail.first);
+      lst_.push_front({k, v});
+      mp_[k] = lst_.begin();
     } else {
-      _lst.push_front({k, v});
-      _mp[k] = _lst.begin();
+      lst_.push_front({k, v});
+      mp_[k] = lst_.begin();
     }
   }
 }
@@ -59,21 +59,21 @@ void LRU<K, V>::put(K k, V v) {
 // delete the key item
 template <typename K, typename V>
 void LRU<K, V>::del(K k) {
-  if (_mp.find(k) == _mp.end()) return;
-  _lst.erase(_mp[k]);
-  _mp.erase(k);
+  if (mp_.find(k) == mp_.end()) return;
+  lst_.erase(mp_[k]);
+  mp_.erase(k);
 }
 
 // find the key item or not
 template <typename K, typename V>
 bool LRU<K, V>::is_find(K k) {
-  return _mp.find(k) != _mp.end();
+  return mp_.find(k) != mp_.end();
 }
 
 template <typename K, typename V>
 void LRU<K, V>::printLRUCache() {
   std::cout << "-------------LRUCache Begin--------------------" << std::endl;
-  for (const auto& p : _lst) {
+  for (const auto& p : lst_) {
     std::cout << "key: " << p.first << ", value : " << p.second << std::endl;
   }
   std::cout << "--------------LRUCache End---------------------" << std::endl;

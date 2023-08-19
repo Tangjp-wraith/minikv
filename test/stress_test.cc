@@ -16,7 +16,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "../include/SkipList.h"
+#include "../base/skiplist.hpp"
 
 #define NUM_THREADS 1
 #define TEST_COUNT 500000
